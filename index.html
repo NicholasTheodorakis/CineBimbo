@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="color-scheme" content="light" />
+<meta name="supported-color-schemes" content="light" />
+<title>CineBimbo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme:light only;
+    --bg:#f3f5f8;
+    --ink:#0c2340;
+    --ink-soft:#5d738f;
+    --blue-900:#0a2a5e;
+    --blue-700:#1450c4;
+    --blue-600:#1e5bd6;
+    --blue-500:#3b82f6;
+    --blue-100:#dbeafe;
+    --blue-50:#eef4ff;
+    --line:#dde8fb;
+    --shadow:0 6px 24px rgba(12,35,64,.10);
+    --shadow-sm:0 2px 8px rgba(12,35,64,.07);
+    --sheet:420px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    overscroll-behavior:none;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:var(--sheet);margin:0 auto;min-height:100vh;position:relative;display:flex;flex-direction:column;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  input,textarea,select{font-family:inherit;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    display:flex;align-items:center;gap:12px;
+    padding:14px 16px;background:rgba(255,255,255,.9);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .icon-btn{
+    width:42px;height:42px;border-radius:13px;
+    display:grid;place-items:center;color:var(--blue-700);
+    background:var(--blue-50);transition:transform .15s,background .15s;
+  }
+  .icon-btn:active{transform:scale(.92);background:var(--blue-100);}
+  .brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;letter-spacing:-.4px;flex:1;}
+  .brand span{color:var(--blue-600);}
+  .add-btn{
+    background:var(--blue-600);color:#fff;height:42px;padding:0 16px;border-radius:13px;
+    font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px;
+    box-shadow:var(--shadow-sm);transition:transform .15s,background .15s;
+  }
+  .add-btn:active{transform:scale(.94);background:var(--blue-700);}
+  .add-btn svg{width:18px;height:18px;}
+
+  /* ---------- Section heading ---------- */
+  .section-head{padding:20px 18px 4px;}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue-500);}
+  .section-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;letter-spacing:-1px;margin:2px 0 0;}
+
+  /* ---------- Tabs (Prospect / Watched) ---------- */
+  .tabs{display:flex;gap:6px;margin:16px 18px 0;background:var(--blue-50);padding:5px;border-radius:14px;}
+  .tab{
+    flex:1;text-align:center;padding:10px;border-radius:10px;font-weight:600;font-size:14px;
+    color:var(--ink-soft);transition:color .2s;position:relative;z-index:1;
+  }
+  .tab.active{color:#fff;}
+  .tab-pill{
+    position:absolute;top:5px;bottom:5px;border-radius:10px;background:var(--blue-600);
+    box-shadow:var(--shadow-sm);transition:transform .28s cubic-bezier(.4,1.3,.5,1),width .28s;z-index:0;
+  }
+  .tabs{position:relative;}
+
+  /* ---------- Filters ---------- */
+  .filters{padding:16px 18px 4px;}
+  .filter-label{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--ink-soft);margin-bottom:7px;}
+  .sort-row{display:flex;gap:8px;margin-bottom:14px;}
+  .sort-btn{
+    flex:1;padding:9px;border-radius:11px;border:1.5px solid var(--line);
+    font-weight:600;font-size:13px;color:var(--ink-soft);background:#fff;transition:all .18s;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .sort-btn svg{width:15px;height:15px;}
+  .sort-btn.active{border-color:var(--blue-600);color:var(--blue-700);background:var(--blue-50);}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{
+    flex:0 0 auto;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:500;
+    background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);white-space:nowrap;transition:all .18s;
+  }
+  .chip.active{background:var(--blue-600);border-color:var(--blue-600);color:#fff;}
+
+  /* ---------- List ---------- */
+  .list{padding:14px 16px 110px;display:flex;flex-direction:column;gap:12px;flex:1;}
+  .card{
+    background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;
+    box-shadow:var(--shadow-sm);position:relative;animation:rise .35s ease both;
+    transition:transform .15s;
+  }
+  .card:active{transform:scale(.985);}
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .card-top{display:flex;gap:13px;align-items:flex-start;}
+  .score{
+    flex:0 0 auto;width:50px;height:50px;border-radius:14px;display:grid;place-items:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;line-height:1;
+  }
+  .card-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;letter-spacing:-.3px;margin:0;line-height:1.25;}
+  .card-director{font-size:12.5px;color:var(--ink-soft);margin-top:3px;}
+  .card-desc{font-size:13.5px;color:var(--ink);opacity:.82;line-height:1.5;margin:11px 0 0;}
+  .card-themes{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .theme-tag{font-size:11px;font-weight:600;padding:4px 9px;border-radius:7px;background:var(--blue-50);color:var(--blue-700);}
+  .card-ctrl{display:flex;align-items:center;gap:6px;flex:0 0 auto;}
+  .mini{display:inline-flex;align-items:center;justify-content:center;gap:5px;border-radius:9px;font-weight:600;transition:all .15s;}
+  .mini-watch{padding:6px 11px;font-size:11.5px;border:1px solid var(--line);background:#fff;color:var(--blue-600);}
+  .mini-watch svg{width:13px;height:13px;}
+  .mini-watch:active{background:var(--blue-50);}
+  .mini-watch.back{color:var(--ink-soft);}
+  .mini-edit{width:30px;height:30px;color:#aab8d0;background:transparent;border:1px solid transparent;}
+  .mini-edit svg{width:16px;height:16px;}
+  .mini-edit:active{color:var(--blue-600);background:var(--blue-50);}
+  .del-confirm{display:none;align-items:center;gap:10px;margin-top:10px;padding:13px 14px;background:#fdecea;border-radius:12px;}
+  .del-confirm.show{display:flex;}
+  .del-confirm span{flex:1;font-size:14px;font-weight:600;color:#c0392b;}
+  .del-yes{padding:8px 16px;border-radius:9px;background:#c0392b;color:#fff;font-weight:700;font-size:13px;}
+  .del-yes:active{background:#a93226;}
+  .del-no{padding:8px 14px;border-radius:9px;border:1.5px solid var(--line);color:var(--ink-soft);font-size:13px;font-weight:600;background:#fff;}
+  .del-no:active{background:var(--blue-50);}
+
+  /* ---------- Empty ---------- */
+  .empty{text-align:center;padding:64px 28px;color:var(--ink-soft);}
+  .empty svg{width:54px;height:54px;color:var(--blue-100);margin-bottom:14px;}
+  .empty h3{font-family:'Space Grotesk',sans-serif;font-size:18px;color:var(--ink);margin:0 0 6px;}
+  .empty p{font-size:14px;margin:0;line-height:1.5;}
+
+  /* ---------- Sidebar ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(10,42,94,.45);z-index:40;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(2px);}
+  .scrim.show{opacity:1;pointer-events:auto;}
+  .sidebar{
+    position:fixed;top:0;left:0;bottom:0;width:80%;max-width:300px;z-index:50;
+    background:var(--blue-900);color:#fff;transform:translateX(-104%);transition:transform .32s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;padding:0 0 28px;
+  }
+  .sidebar.open{transform:none;}
+  .sb-head{padding:30px 26px 22px;}
+  .sb-logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px;letter-spacing:-.6px;}
+  .sb-logo span{color:var(--blue-500);}
+  .sb-sub{font-size:13px;color:#9db8e8;margin-top:4px;}
+  .nav{padding:14px;display:flex;flex-direction:column;gap:8px;}
+  .nav-item{
+    display:flex;align-items:center;gap:15px;padding:16px 18px;border-radius:15px;
+    font-weight:600;font-size:16px;color:#c7d8f5;transition:all .18s;text-align:left;
+  }
+  .nav-item svg{width:24px;height:24px;flex:0 0 auto;}
+  .nav-item .count{margin-left:auto;font-size:13px;background:rgba(255,255,255,.1);padding:3px 10px;border-radius:999px;font-weight:600;}
+  .nav-item.active{background:var(--blue-600);color:#fff;}
+  .nav-item:not(.active):active{background:rgba(255,255,255,.07);}
+  .sb-foot{margin-top:auto;padding:0 26px;font-size:12px;color:#6f8cc0;line-height:1.6;}
+
+  /* ---------- Bottom sheet (form) ---------- */
+  .sheet-scrim{position:fixed;inset:0;background:rgba(10,42,94,.45);z-index:60;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(2px);}
+  .sheet-scrim.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:70;max-width:var(--sheet);margin:0 auto;
+    background:#fff;border-radius:26px 26px 0 0;transform:translateY(102%);
+    transition:transform .34s cubic-bezier(.4,0,.2,1);max-height:92vh;display:flex;flex-direction:column;
+    box-shadow:0 -10px 40px rgba(12,35,64,.2);
+  }
+  .sheet.open{transform:none;}
+  .grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:11px auto 4px;}
+  .sheet-head{display:flex;align-items:center;padding:8px 20px 14px;border-bottom:1px solid var(--line);}
+  .sheet-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;flex:1;letter-spacing:-.4px;}
+  .sheet-body{padding:18px 20px 24px;overflow-y:auto;}
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:var(--ink);}
+  .field input[type=text],.field textarea{
+    width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:13px;
+    font-size:15px;color:var(--ink);background:#fbfcff;transition:border .15s;
+  }
+  .field textarea{resize:vertical;min-height:78px;line-height:1.5;}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--blue-500);background:#fff;}
+  .field input::placeholder,.field textarea::placeholder{color:#a9b8d0;}
+  .theme-pick{display:flex;flex-wrap:wrap;gap:8px;}
+  .pick{
+    padding:9px 14px;border-radius:11px;border:1.5px solid var(--line);font-size:13px;font-weight:500;
+    color:var(--ink-soft);background:#fff;transition:all .15s;
+  }
+  .pick.on{background:var(--blue-600);border-color:var(--blue-600);color:#fff;}
+  .rating-wrap{display:flex;align-items:center;gap:16px;}
+  .rating-val{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px;width:60px;height:54px;
+    display:grid;place-items:center;border-radius:14px;flex:0 0 auto;
+  }
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;flex:1;height:8px;border-radius:8px;
+    background:linear-gradient(90deg,var(--blue-100),var(--blue-600));outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:#fff;
+    border:3px solid var(--blue-600);box-shadow:var(--shadow-sm);cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--blue-600);cursor:pointer;}
+  .save-btn{
+    width:100%;padding:16px;border-radius:15px;background:var(--blue-600);color:#fff;
+    font-weight:700;font-size:16px;margin-top:6px;box-shadow:var(--shadow);transition:transform .12s,background .15s;
+  }
+  .save-btn:active{transform:scale(.98);background:var(--blue-700);}
+  .save-btn:disabled{background:var(--line);color:var(--ink-soft);box-shadow:none;}
+  .err{font-size:12.5px;color:#c0392b;margin-top:7px;display:none;}
+  .err.show{display:block;}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Top bar -->
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Abrir menu">
+      <svg viewBox="0 0 24 24" width="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="brand">Cine<span>Bimbo</span></div>
+    <button class="add-btn" id="addBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Novo
+    </button>
+  </header>
+
+  <!-- Section heading -->
+  <div class="section-head">
+    <div class="eyebrow" id="eyebrow">Coleção</div>
+    <h1 class="section-title" id="sectionTitle">Filmes</h1>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs">
+    <div class="tab-pill" id="tabPill"></div>
+    <button class="tab active" data-status="prospect">Prospect</button>
+    <button class="tab" data-status="watched">Watched</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-label">Ordenar por</div>
+    <div class="sort-row">
+      <button class="sort-btn active" data-sort="az">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4v16M7 4l-3 3M7 4l3 3"/><path d="M13 6h7M13 12h5M13 18h3"/></svg>
+        A–Z
+      </button>
+      <button class="sort-btn" data-sort="nota">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>
+        Nota
+      </button>
+    </div>
+    <div class="filter-label">Tema</div>
+    <div class="chips" id="themeChips"></div>
+  </div>
+
+  <!-- List -->
+  <div class="list" id="list"></div>
+</div>
+
+<!-- Sidebar -->
+<div class="scrim" id="scrim"></div>
+<nav class="sidebar" id="sidebar">
+  <div class="sb-head">
+    <div class="sb-logo">Cine<span>Bimbo</span></div>
+    <div class="sb-sub">Sua coleção pessoal</div>
+  </div>
+  <div class="nav">
+    <button class="nav-item active" data-type="movie">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M17 9h4M3 15h4M17 15h4"/></svg>
+      Filmes
+      <span class="count" id="countMovie">0</span>
+    </button>
+    <button class="nav-item" data-type="series">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 3l4 4 4-4"/></svg>
+      Séries
+      <span class="count" id="countSeries">0</span>
+    </button>
+  </div>
+  <div class="sb-foot">Os itens ficam salvos automaticamente neste dispositivo.</div>
+</nav>
+
+<!-- Bottom sheet form -->
+<div class="sheet-scrim" id="sheetScrim"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="sheet-head">
+    <div class="sheet-title" id="sheetTitle">Novo filme</div>
+    <button class="icon-btn" id="closeSheet" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" width="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <div class="field">
+      <label for="fName">Nome</label>
+      <input type="text" id="fName" placeholder="Ex.: Duna" autocomplete="off" />
+      <div class="err" id="nameErr">Dá um nome pra ele primeiro.</div>
+    </div>
+    <div class="field">
+      <label for="fDirector">Diretor</label>
+      <input type="text" id="fDirector" placeholder="Ex.: Denis Villeneuve" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="fDesc">Descrição</label>
+      <textarea id="fDesc" placeholder="Do que se trata, ou por que quer assistir…"></textarea>
+    </div>
+    <div class="field">
+      <label>Temas</label>
+      <div class="theme-pick" id="themePick"></div>
+    </div>
+    <div class="field">
+      <label>Nota</label>
+      <div class="rating-wrap">
+        <div class="rating-val" id="ratingVal">0.0</div>
+        <input type="range" id="fRating" min="0" max="10" step="0.5" value="0" />
+      </div>
+    </div>
+    <button class="save-btn" id="saveBtn">Adicionar</button>
+    <button class="del-link" id="deleteBtn">Excluir da coleção</button>
+    <div class="del-confirm" id="delConfirm">
+      <span>Tem certeza?</span>
+      <button class="del-yes" id="delYes">Excluir</button>
+      <button class="del-no" id="delNo">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const THEMES = ["Ação","Aventura","Sci-Fi","Drama","Romance","Comédia","Terror","Suspense","Crime","Fantasia","Animação","Documentário"];
+const KEY = "cinemateca:items:v1";
+
+let items = [];
+let mem = []; // fallback
+let state = { type:"movie", status:"prospect", sort:"az", theme:"all", editId:null, formThemes:[] };
+
+/* ---------- storage ---------- */
+async function load(){
+  try{
+    const r = await window.storage.get(KEY, false);
+    items = r && r.value ? JSON.parse(r.value) : [];
+  }catch(e){ items = mem.slice(); }
+}
+async function save(){
+  mem = items.slice();
+  try{ await window.storage.set(KEY, JSON.stringify(items), false); }catch(e){}
+}
+
+/* ---------- seed: 34 watched films ---------- */
+const SEED_KEY = "cinemateca:seeded:v1";
+const SEED = [
+  {id:"s001",name:"Interstellar",director:"Christopher Nolan",description:"Com a Terra à beira do colapso, um piloto lidera uma missão interestelar em busca de um novo lar para a humanidade.",themes:["Sci-Fi","Drama","Aventura"],rating:9.3,status:"watched",type:"movie"},
+  {id:"s002",name:"A Origem",director:"Christopher Nolan",description:"Um ladrão especializado em roubar segredos do subconsciente recebe a missão quase impossível de plantar uma ideia na mente de um herdeiro.",themes:["Ação","Sci-Fi","Suspense"],rating:9.0,status:"watched",type:"movie"},
+  {id:"s003",name:"Ilha do Medo",director:"Martin Scorsese",description:"Um detetive investiga o desaparecimento de uma paciente em um hospício isolado e começa a questionar sua própria sanidade.",themes:["Suspense","Terror","Drama"],rating:8.3,status:"watched",type:"movie"},
+  {id:"s004",name:"Oppenheimer",director:"Christopher Nolan",description:"A trajetória do físico que liderou o projeto Manhattan e criou a primeira bomba atômica — e o peso moral que carregou por isso.",themes:["Drama"],rating:8.7,status:"watched",type:"movie"},
+  {id:"s005",name:"À Espera de um Milagre",director:"Frank Darabont",description:"Um guarda do corredor da morte descobre que um condenado gigante possui um dom sobrenatural de cura.",themes:["Drama","Fantasia"],rating:8.4,status:"watched",type:"movie"},
+  {id:"s006",name:"Um Sonho de Liberdade",director:"Frank Darabont",description:"Um banqueiro inocente condenado por assassinato encontra esperança e redenção através da amizade dentro de uma prisão brutal.",themes:["Drama","Crime"],rating:9.2,status:"watched",type:"movie"},
+  {id:"s007",name:"Clube da Luta",director:"David Fincher",description:"Um executivo insatisfeito forma um clube de luta clandestino com um estranho carismático, mergulhando em uma jornada de caos e identidade.",themes:["Drama","Suspense"],rating:8.2,status:"watched",type:"movie"},
+  {id:"s008",name:"Efeito Borboleta",director:"Eric Bress, J. Mackye Gruber",description:"Um jovem descobre que pode voltar a momentos traumáticos da infância e alterar o passado, mas cada mudança desencadeia consequências imprevisíveis.",themes:["Sci-Fi","Drama","Suspense"],rating:7.8,status:"watched",type:"movie"},
+  {id:"s009",name:"The Prestige",director:"Christopher Nolan",description:"Dois mágicos rivais travam uma guerra de obsessão e sabotagem em busca do truque de ilusão perfeito.",themes:["Drama","Suspense"],rating:8.6,status:"watched",type:"movie"},
+  {id:"s010",name:"Seven",director:"David Fincher",description:"Dois detetives perseguem um assassino que usa os sete pecados capitais como inspiração para crimes meticulosamente planejados.",themes:["Crime","Suspense","Drama"],rating:8.3,status:"watched",type:"movie"},
+  {id:"s011",name:"Amnésia",director:"Christopher Nolan",description:"Com perda de memória de curto prazo, um homem tenta descobrir o assassino de sua esposa usando tatuagens e fotos Polaroid como guia.",themes:["Suspense","Crime","Drama"],rating:8.1,status:"watched",type:"movie"},
+  {id:"s012",name:"O Lobo de Wall Street",director:"Martin Scorsese",description:"A ascensão e queda de Jordan Belfort, corretor que construiu um império bilionário com fraude e excesso nos anos 90.",themes:["Drama","Crime","Comédia"],rating:8.4,status:"watched",type:"movie"},
+  {id:"s013",name:"O Predestinado",director:"Michael Spierig, Peter Spierig",description:"Um agente temporal percorre diferentes épocas para impedir um atentado, desvendando reviravoltas chocantes sobre sua própria existência.",themes:["Sci-Fi","Suspense","Drama"],rating:8.6,status:"watched",type:"movie"},
+  {id:"s014",name:"Close",director:"Lukas Dhont",description:"A intensa amizade entre dois garotos de 13 anos começa a se fragmentar quando colegas questionam a natureza do vínculo entre eles.",themes:["Drama"],rating:7.7,status:"watched",type:"movie"},
+  {id:"s015",name:"Animais Noturnos",director:"Tom Ford",description:"Uma galerista recebe o romance perturbador de seu ex-marido e revisita um passado doloroso que ela preferiu esquecer.",themes:["Drama","Suspense","Crime"],rating:8.0,status:"watched",type:"movie"},
+  {id:"s016",name:"Donnie Darko",director:"Richard Kelly",description:"Um adolescente perturbado começa a ter visões de um coelho gigante que profetiza o fim do mundo em 28 dias.",themes:["Sci-Fi","Drama","Suspense"],rating:8.3,status:"watched",type:"movie"},
+  {id:"s017",name:"Oldboy",director:"Park Chan-wook",description:"Após 15 anos preso sem explicação, um homem tem cinco dias para descobrir quem o aprisionou — e por quê.",themes:["Suspense","Crime","Drama"],rating:8.8,status:"watched",type:"movie"},
+  {id:"s018",name:"Clube de Compras Dallas",director:"Jean-Marc Vallée",description:"Diagnosticado com AIDS em 1985, um cowboy texano cria uma rede clandestina para distribuir tratamentos alternativos a outros pacientes.",themes:["Drama"],rating:8.9,status:"watched",type:"movie"},
+  {id:"s019",name:"Incêndios",director:"Denis Villeneuve",description:"Dois irmãos viajam ao Oriente Médio para cumprir a última vontade da mãe e descobrem segredos devastadores sobre seu passado.",themes:["Drama","Suspense"],rating:8.0,status:"watched",type:"movie"},
+  {id:"s020",name:"Don't Worry Darling",director:"Olivia Wilde",description:"Em uma comunidade perfeita dos anos 50, uma jovem começa a suspeitar que a utopia à sua volta esconde algo muito sinistro.",themes:["Suspense","Drama","Sci-Fi"],rating:8.7,status:"watched",type:"movie"},
+  {id:"s021",name:"Onze Homens e um Segredo",director:"Steven Soderbergh",description:"Um ladrão recém-saído da prisão monta uma equipe de 11 especialistas para roubar simultaneamente três cassinos de Las Vegas.",themes:["Crime","Ação","Comédia"],rating:8.4,status:"watched",type:"movie"},
+  {id:"s022",name:"Cisne Negro",director:"Darren Aronofsky",description:"Uma bailarina dedicada entra em colapso psicológico enquanto busca a perfeição absoluta para estrelar o duplo papel no Lago dos Cisnes.",themes:["Drama","Suspense","Terror"],rating:8.8,status:"watched",type:"movie"},
+  {id:"s023",name:"Gone Girl",director:"David Fincher",description:"No dia do aniversário de casamento, Amy desaparece e seu marido Nick torna-se o principal suspeito em um jogo de manipulação e mentiras.",themes:["Suspense","Drama","Crime"],rating:8.5,status:"watched",type:"movie"},
+  {id:"s024",name:"Intocáveis",director:"Olivier Nakache, Éric Toledano",description:"A improvável amizade entre um milionário tetraplégico e seu cuidador de origem humilde transforma completamente a vida de ambos.",themes:["Drama","Comédia"],rating:8.1,status:"watched",type:"movie"},
+  {id:"s025",name:"Prisoners",director:"Denis Villeneuve",description:"Quando duas meninas somem, um pai desesperado toma a justiça em suas próprias mãos enquanto um detetive persiste em sua investigação.",themes:["Crime","Drama","Suspense"],rating:9.0,status:"watched",type:"movie"},
+  {id:"s026",name:"Whiplash",director:"Damien Chazelle",description:"Um jovem baterista ambicioso é submetido aos métodos implacáveis de um instrutor que acredita que a grandeza exige sacrifício total.",themes:["Drama"],rating:8.7,status:"watched",type:"movie"},
+  {id:"s027",name:"Arrival",director:"Denis Villeneuve",description:"Uma linguista é recrutada para comunicar-se com alienígenas após 12 naves pousarem ao redor do mundo, revelando verdades sobre o tempo.",themes:["Sci-Fi","Drama"],rating:8.6,status:"watched",type:"movie"},
+  {id:"s028",name:"Bastardos Inglórios",director:"Quentin Tarantino",description:"Um grupo de soldados judeus e uma jovem sobrevivente do Holocausto traçam planos separados para eliminar a liderança nazista.",themes:["Ação","Drama"],rating:8.5,status:"watched",type:"movie"},
+  {id:"s029",name:"Era uma vez em Hollywood",director:"Quentin Tarantino",description:"Em 1969, um ator de faroeste em declínio e seu dublê navegam por uma Los Angeles em transformação às vésperas de um evento trágico.",themes:["Drama","Comédia"],rating:8.0,status:"watched",type:"movie"},
+  {id:"s030",name:"Django Unchained",director:"Quentin Tarantino",description:"Um escravo liberto se alia a um caçador de recompensas alemão para resgatar sua esposa das mãos de um cruel fazendeiro do sul.",themes:["Ação","Drama","Aventura"],rating:8.7,status:"watched",type:"movie"},
+  {id:"s031",name:"Nightcrawler",director:"Dan Gilroy",description:"Um oportunista sem escrúpulos vira câmera freelancer de cenas de crime, mergulhando no lado mais sombrio do jornalismo sensacionalista.",themes:["Drama","Crime","Suspense"],rating:8.4,status:"watched",type:"movie"},
+  {id:"s032",name:"Anatomy of a Fall",director:"Justine Triet",description:"Uma escritora é julgada pela morte do marido após ele cair de seu chalet alpino, com o filho deficiente visual como única testemunha.",themes:["Drama","Suspense","Crime"],rating:8.6,status:"watched",type:"movie"},
+  {id:"s033",name:"Brilho Eterno de uma Mente sem Lembranças",director:"Michel Gondry",description:"Um casal decide apagar as memórias um do outro após o término doloroso, mas durante o processo um deles começa a se arrepender.",themes:["Romance","Drama","Sci-Fi"],rating:8.8,status:"watched",type:"movie"},
+  {id:"s034",name:"Project Hail Mary",director:"Phil Lord, Christopher Miller",description:"Um astronauta acorda sozinho no espaço sem memória e percebe que foi enviado em missão solitária para salvar a Terra de uma extinção solar.",themes:["Sci-Fi","Aventura","Drama"],rating:8.8,status:"watched",type:"movie"}
+];
+async function seedData(){
+  try{
+    const done = await window.storage.get(SEED_KEY, false);
+    if(done && done.value) return;
+  }catch(e){}
+  const existingIds = new Set(items.map(i=>i.id));
+  SEED.forEach(s=>{ if(!existingIds.has(s.id)) items.push({...s}); });
+  await save();
+  try{ await window.storage.set(SEED_KEY,"1",false); }catch(e){}
+}
+
+/* ---------- seed: 34 prospect films ---------- */
+const SEED_KEY2 = "cinemateca:seeded:v2";
+const SEED2 = [
+  {id:"p001",name:"O Pianista",director:"Roman Polanski",description:"A história real do pianista polonês-judeu Szpilman, que sobreviveu sozinho à ocupação nazista de Varsóvia, escondendo-se entre as ruínas do gueto.",themes:["Drama"],rating:8.5,status:"prospect",type:"movie"},
+  {id:"p002",name:"The Game",director:"David Fincher",description:"Um banqueiro bilionário recebe um jogo misterioso de aniversário que apaga gradualmente a fronteira entre simulação e realidade, deixando-o sem saber em quem confiar.",themes:["Suspense","Drama"],rating:7.8,status:"prospect",type:"movie"},
+  {id:"p003",name:"The Sixth Sense",director:"M. Night Shyamalan",description:"Um psicólogo infantil trabalha com um menino perturbado que carrega o peso angustiante de ver e ouvir os mortos ao seu redor.",themes:["Suspense","Terror","Drama"],rating:8.2,status:"prospect",type:"movie"},
+  {id:"p004",name:"Primal Fear",director:"Gregory Hoblit",description:"Um advogado brilhante e ambicioso defende um jovem acólito acusado de assassinar um arcebispo em um julgamento repleto de reviravoltas inesperadas.",themes:["Crime","Drama","Suspense"],rating:7.7,status:"prospect",type:"movie"},
+  {id:"p005",name:"The Irishman",director:"Martin Scorsese",description:"Um veterano da Segunda Guerra e segurança sindical rememora décadas de crimes e lealdades como assassino a serviço da máfia americana.",themes:["Crime","Drama"],rating:7.8,status:"prospect",type:"movie"},
+  {id:"p006",name:"As Duas Faces de um Crime",director:"Gregory Hoblit",description:"Um homem frio e meticuloso atira na própria esposa e desafia a acusação a provar o crime, em um duelo de inteligência contra um promotor ambicioso.",themes:["Crime","Suspense","Drama"],rating:7.2,status:"prospect",type:"movie"},
+  {id:"p007",name:"Zodíaco",director:"David Fincher",description:"Um cartunista de jornal torna-se obcecado em desmascarar o assassino em série Zodíaco, investigando o caso por décadas mesmo quando todos desistiram.",themes:["Crime","Drama","Suspense"],rating:7.7,status:"prospect",type:"movie"},
+  {id:"p008",name:"Questão de Tempo",director:"Richard Curtis",description:"Um jovem descobre que os homens de sua família podem viajar no tempo e usa esse dom para construir a vida perfeita, aprendendo o que realmente importa.",themes:["Romance","Drama","Sci-Fi"],rating:7.8,status:"prospect",type:"movie"},
+  {id:"p009",name:"Um Contratempo",director:"Oriol Paulo",description:"Um empresário acusado de assassinato contrata uma renomada advogada para construir a versão perfeita do crime, em um duelo de inteligência com reviravoltas surpreendentes.",themes:["Suspense","Crime","Drama"],rating:8.0,status:"prospect",type:"movie"},
+  {id:"p010",name:"As Linhas Tortas de Deus",director:"Oriol Paulo",description:"Uma mulher se interna voluntariamente em um hospital psiquiátrico para investigar uma série de mortes, mas logo não sabe mais quem é quem naquele ambiente perturbador.",themes:["Suspense","Crime","Drama"],rating:6.8,status:"prospect",type:"movie"},
+  {id:"p011",name:"O Abutre",director:"Dan Gilroy",description:"Um oportunista sem escrúpulos vira câmera freelancer de cenas de crime em Los Angeles, mergulhando cada vez mais fundo no lado mais sombrio do jornalismo sensacionalista.",themes:["Crime","Drama","Suspense"],rating:7.9,status:"prospect",type:"movie"},
+  {id:"p012",name:"All Quiet on the Western Front",director:"Edward Berger",description:"Jovens alemães entusiasmados pelo patriotismo vão à Primeira Guerra Mundial e descobrem o horror absoluto das trincheiras, em uma adaptação do clássico de Remarque.",themes:["Drama","Ação"],rating:7.8,status:"prospect",type:"movie"},
+  {id:"p013",name:"1917",director:"Sam Mendes",description:"Dois soldados britânicos são enviados em uma missão aparentemente impossível: atravessar território inimigo a pé para entregar uma mensagem que pode salvar 1.600 vidas.",themes:["Ação","Drama"],rating:8.3,status:"prospect",type:"movie"},
+  {id:"p014",name:"Founder",director:"John Lee Hancock",description:"A história real de Ray Kroc, um vendedor mediano de 52 anos que transformou a hamburgueria artesanal dos irmãos McDonald em um império global de fast food.",themes:["Drama"],rating:7.2,status:"prospect",type:"movie"},
+  {id:"p015",name:"The Revenant",director:"Alejandro González Iñárritu",description:"O caçador Hugh Glass sobrevive a um brutal ataque de urso e atravessa uma natureza hostil e gelada em busca de vingança contra o homem que o abandonou à morte.",themes:["Ação","Drama","Aventura"],rating:8.0,status:"prospect",type:"movie"},
+  {id:"p016",name:"The Father",director:"Florian Zeller",description:"Um homem de 80 anos luta contra a demência enquanto sua filha organiza seus cuidados, em um retrato devastador e inovador da perda de identidade.",themes:["Drama"],rating:8.3,status:"prospect",type:"movie"},
+  {id:"p017",name:"Dune",director:"Denis Villeneuve",description:"O herdeiro de uma nobre família é enviado ao planeta mais perigoso da galáxia, onde aguarda um futuro envolto em profecia, poder e sobrevivência.",themes:["Sci-Fi","Aventura","Drama"],rating:8.0,status:"prospect",type:"movie"},
+  {id:"p018",name:"Guardians of the Galaxy Vol. 3",director:"James Gunn",description:"Os Guardiões embarcam em uma missão para proteger Rocket de um passado sombrio e cruel, confrontando um inimigo com planos aterrorizantes para o universo.",themes:["Ação","Aventura","Comédia"],rating:7.9,status:"prospect",type:"movie"},
+  {id:"p019",name:"The Brutalist",director:"Brady Corbet",description:"Um arquiteto judeu-húngaro foge da Europa pós-guerra para os EUA determinado a reconstruir sua vida e legado artístico, enfrentando as contradições do sonho americano.",themes:["Drama"],rating:7.8,status:"prospect",type:"movie"},
+  {id:"p020",name:"The Master",director:"Paul Thomas Anderson",description:"Um veterano da Segunda Guerra perturbado e alcoólatra encontra refúgio ao seguir um carismático líder de um novo movimento espiritual, em uma relação de fascínio e dependência.",themes:["Drama"],rating:7.0,status:"prospect",type:"movie"},
+  {id:"p021",name:"A Grande Aposta",director:"Adam McKay",description:"Um grupo de excêntricos apostou contra o mercado imobiliário americano antes do colapso de 2008, expondo a corrupção e a estupidez sistêmica do sistema financeiro.",themes:["Drama","Crime","Comédia"],rating:7.8,status:"prospect",type:"movie"},
+  {id:"p022",name:"Sobre Meninos e Lobos",director:"Clint Eastwood",description:"Três amigos de infância se reencontram após o assassinato da filha de um deles, reabrindo velhas feridas e segredos enterrados no passado do bairro.",themes:["Crime","Drama","Suspense"],rating:7.9,status:"prospect",type:"movie"},
+  {id:"p023",name:"A Mula",director:"Clint Eastwood",description:"Um idoso horticultor de 80 anos, falido e à deriva, torna-se acidentalmente transportador de drogas para um cartel mexicano, equilibrando dois mundos completamente opostos.",themes:["Crime","Drama"],rating:7.1,status:"prospect",type:"movie"},
+  {id:"p024",name:"Spirited Away",director:"Hayao Miyazaki",description:"Uma menina de 10 anos fica presa em um mundo mágico de espíritos e precisa trabalhar em uma casa de banhos para resgatar seus pais, transformados em porcos.",themes:["Fantasia","Aventura","Animação"],rating:8.6,status:"prospect",type:"movie"},
+  {id:"p025",name:"Sinais",director:"M. Night Shyamalan",description:"Círculos gigantes aparecem misteriosamente no campo de um fazendeiro viúvo, desencadeando eventos que forçam ele e sua família a encarar seus medos mais profundos.",themes:["Suspense","Terror","Sci-Fi"],rating:7.3,status:"prospect",type:"movie"},
+  {id:"p026",name:"A Onda",director:"Dennis Gansel",description:"Um professor lança um experimento social em sala de aula simulando um regime autoritário, e o que começa como teoria rapidamente ganha vida e sai do controle.",themes:["Drama","Suspense"],rating:7.6,status:"prospect",type:"movie"},
+  {id:"p027",name:"Drive",director:"Nicolas Winding Refn",description:"Um motorista reservado que faz bicos como piloto de fuga se envolve com a máfia ao tentar proteger a família de sua vizinha, em uma espiral de violência e silêncio.",themes:["Crime","Ação","Drama"],rating:7.8,status:"prospect",type:"movie"},
+  {id:"p028",name:"História de um Casamento",director:"Noah Baumbach",description:"Um diretor de teatro e uma atriz enfrentam os altos e baixos emocionais de seu divórcio, revelando no processo o quanto ainda se amam.",themes:["Drama","Romance"],rating:7.9,status:"prospect",type:"movie"},
+  {id:"p029",name:"O Segredo de Brokeback Mountain",director:"Ang Lee",description:"Dois pastores se apaixonam no verão de 1963 e mantêm um relacionamento secreto ao longo de vinte anos, lutando contra o preconceito e suas próprias angústias.",themes:["Drama","Romance"],rating:7.7,status:"prospect",type:"movie"},
+  {id:"p030",name:"Aftersun",director:"Charlotte Wells",description:"Uma adulta revisita fragmentos de memória de férias com seu pai quando ela tinha 11 anos, enxergando aquele homem jovem e frágil com olhos completamente novos.",themes:["Drama"],rating:7.5,status:"prospect",type:"movie"},
+  {id:"p031",name:"Meu Pai",director:"Uberto Pasolini",description:"Um pai solo diagnosticado com doença terminal busca encontrar uma família adotiva amorosa para seu filho pequeno, tentando garantir o futuro do menino enquanto ainda há tempo.",themes:["Drama"],rating:7.2,status:"prospect",type:"movie"},
+  {id:"p032",name:"Sociedade dos Poetas Mortos",director:"Peter Weir",description:"Um professor carismático inspira seus alunos numa escola conservadora a questionar as regras e aproveitar cada momento da vida, gerando conflitos com o establishment.",themes:["Drama"],rating:8.1,status:"prospect",type:"movie"},
+  {id:"p033",name:"Blue Valentine",director:"Derek Cianfrance",description:"A ascensão e queda de um casal mostradas em duas linhas do tempo paralelas: o romance apaixonado do início e o presente disfuncional e desgastado.",themes:["Drama","Romance"],rating:7.4,status:"prospect",type:"movie"},
+  {id:"p034",name:"Túmulo dos Vagalumes",director:"Isao Takahata",description:"Um adolescente e sua irmã pequena tentam sobreviver sozinhos no Japão durante a Segunda Guerra Mundial após perderem a mãe em um bombardeio.",themes:["Drama","Animação"],rating:8.5,status:"prospect",type:"movie"}
+];
+async function seedData2(){
+  try{
+    const done = await window.storage.get(SEED_KEY2, false);
+    if(done && done.value) return;
+  }catch(e){}
+  const existingIds = new Set(items.map(i=>i.id));
+  SEED2.forEach(s=>{ if(!existingIds.has(s.id)) items.push({...s}); });
+  await save();
+  try{ await window.storage.set(SEED_KEY2,"1",false); }catch(e){}
+}
+
+/* ---------- seed: 8 watched series ---------- */
+const SEED_KEY3 = "cinemateca:seeded:v3";
+const SEED3 = [
+  {id:"tv001",name:"Breaking Bad",director:"Vince Gilligan",description:"Um professor de química do ensino médio, diagnosticado com câncer terminal, começa a produzir metanfetamina para garantir o futuro financeiro da família — e descobre quem realmente é.",themes:["Crime","Drama","Suspense"],rating:9.5,status:"watched",type:"series"},
+  {id:"tv002",name:"Better Call Saul",director:"Vince Gilligan, Peter Gould",description:"A origem e ascensão do advogado Jimmy McGill, que se transforma no desonesto e carismático Saul Goodman antes de seus dias ao lado de Walter White.",themes:["Crime","Drama","Suspense"],rating:9.4,status:"watched",type:"series"},
+  {id:"tv003",name:"Attack on Titan",director:"Tetsuro Araki, Masashi Koizuka",description:"A humanidade vive atrás de enormes muralhas para se proteger de titãs devoradores de humanos. Quando os muros são violados, um jovem jura exterminar todos os titãs.",themes:["Ação","Fantasia","Animação"],rating:9.8,status:"watched",type:"series"},
+  {id:"tv004",name:"La Casa de Papel",director:"Álex Pina",description:"Um misterioso professor recruta oito ladrões para executar o maior assalto da história espanhola, tomando a Casa da Moeda de reféns enquanto negocia com a polícia.",themes:["Crime","Ação","Drama"],rating:8.3,status:"watched",type:"series"},
+  {id:"tv005",name:"Prison Break",director:"Paul Scheuring",description:"Um engenheiro comete um crime para ser preso na mesma instituição do irmão, condenado à morte injustamente, e executa um plano elaborado de fuga de dentro para fora.",themes:["Crime","Ação","Drama"],rating:7.7,status:"watched",type:"series"},
+  {id:"tv006",name:"The Last of Us",director:"Craig Mazin, Neil Druckmann",description:"Em um mundo pós-apocalíptico dominado por um fungo que transforma humanos em criaturas, um contrabandista endurecido é encarregado de proteger uma garota que pode ser a chave para a cura.",themes:["Drama","Ação","Terror"],rating:8.1,status:"watched",type:"series"},
+  {id:"tv007",name:"Succession",director:"Jesse Armstrong",description:"Os filhos de um magnata da mídia disputam ferozmente o controle do império familiar enquanto o pai adoecente se recusa a soltar o poder — em uma sátira cruel sobre dinheiro, ego e família.",themes:["Drama","Comédia"],rating:9.6,status:"watched",type:"series"},
+  {id:"tv008",name:"True Detective",director:"Nic Pizzolatto",description:"Dois detetives com personalidades radicalmente opostas investigam um misterioso assassinato em série no sul dos Estados Unidos, reabrindo o caso 17 anos depois.",themes:["Crime","Drama","Suspense"],rating:9.3,status:"watched",type:"series"}
+];
+async function seedData3(){
+  try{
+    const done = await window.storage.get(SEED_KEY3, false);
+    if(done && done.value) return;
+  }catch(e){}
+  const existingIds = new Set(items.map(i=>i.id));
+  SEED3.forEach(s=>{ if(!existingIds.has(s.id)) items.push({...s}); });
+  await save();
+  try{ await window.storage.set(SEED_KEY3,"1",false); }catch(e){}
+}
+
+/* ---------- seed: 17 prospect series ---------- */
+const SEED_KEY4 = "cinemateca:seeded:v4";
+const SEED4 = [
+  {id:"tv009",name:"Chernobyl",director:"Johan Renck",description:"A dramatização precisa dos eventos do desastre nuclear de Chernobyl em 1986 e da investigação que se seguiu, revelando a extensão da mentira soviética sobre o que aconteceu.",themes:["Drama"],rating:9.4,status:"prospect",type:"series"},
+  {id:"tv010",name:"Mr. Robot",director:"Sam Esmail",description:"Um jovem programador com transtorno dissociativo é recrutado por um hacker misterioso para derrubar as corporações que controlam o mundo, mas não sabe em quem — nem em si mesmo — confiar.",themes:["Drama","Suspense","Crime"],rating:8.5,status:"prospect",type:"series"},
+  {id:"tv011",name:"Band of Brothers",director:"Steven Spielberg, Tom Hanks",description:"A jornada da Easy Company, do 506º Regimento Paraquedista americano, desde o treinamento até o fim da Segunda Guerra Mundial na Europa — baseada em fatos reais.",themes:["Drama","Ação"],rating:9.4,status:"prospect",type:"series"},
+  {id:"tv012",name:"Dark",director:"Baran bo Odar",description:"Quatro famílias de uma pequena cidade alemã são arrastadas para um mistério de viagem no tempo, paradoxos e segredos intergeracionais que se estendem por séculos.",themes:["Sci-Fi","Drama","Suspense"],rating:8.8,status:"prospect",type:"series"},
+  {id:"tv013",name:"Fullmetal Alchemist: Brotherhood",director:"Yasuhiro Irie",description:"Dois irmãos que praticaram alquimia proibida para ressuscitar a mãe partem em busca de redenção, descobrindo conspirações que ameaçam o mundo inteiro.",themes:["Ação","Fantasia","Animação"],rating:9.1,status:"prospect",type:"series"},
+  {id:"tv014",name:"Vinland Saga",director:"Shuhei Yabuta",description:"Um jovem viking obcecado em vingar a morte do pai une-se ao grupo de mercenários que o assassinou, iniciando uma jornada brutal de guerra, escravidão e autodescoberta.",themes:["Ação","Aventura","Animação"],rating:8.8,status:"prospect",type:"series"},
+  {id:"tv015",name:"The Wire",director:"David Simon",description:"Um retrato cru e abrangente da cidade de Baltimore, acompanhando policiais e traficantes em uma guerra interminável pelo controle das ruas, das instituições e do poder.",themes:["Crime","Drama"],rating:9.3,status:"prospect",type:"series"},
+  {id:"tv016",name:"Stranger Things",director:"Matt Duffer, Ross Duffer",description:"Um grupo de crianças em uma pequena cidade americana dos anos 80 enfrenta forças sobrenaturais e experimentos secretos após o desaparecimento misterioso de um amigo.",themes:["Sci-Fi","Terror","Drama","Aventura"],rating:8.7,status:"prospect",type:"series"},
+  {id:"tv017",name:"Peaky Blinders",director:"Steven Knight",description:"A saga da família Shelby, um clã criminoso de Birmingham no período pós-Primeira Guerra, que constrói um império enquanto enfrenta inimigos, polícia e seus próprios fantasmas.",themes:["Crime","Drama"],rating:8.8,status:"prospect",type:"series"},
+  {id:"tv018",name:"Game of Thrones",director:"David Benioff, D.B. Weiss",description:"Casas nobres guerreiam pelo Trono de Ferro dos Sete Reinos enquanto uma ameaça sobrenatural avança pelo norte — e uma jovem exilada tenta reclamar seu legado com dragões.",themes:["Fantasia","Drama","Ação"],rating:9.2,status:"prospect",type:"series"},
+  {id:"tv019",name:"The Boys",director:"Eric Kripke",description:"Em um mundo onde super-heróis são controlados por uma megacorporação corrupta, um grupo de civis decide fazer justiça com as próprias mãos de maneiras cada vez mais radicais.",themes:["Ação","Drama","Comédia"],rating:8.7,status:"prospect",type:"series"},
+  {id:"tv020",name:"Severance",director:"Ben Stiller",description:"Funcionários de uma empresa submetem-se a um procedimento que separa completamente suas memórias profissionais das pessoais — mas dúvidas perturbadoras começam a surgir dos dois lados.",themes:["Sci-Fi","Drama","Suspense"],rating:8.7,status:"prospect",type:"series"},
+  {id:"tv021",name:"Sopranos",director:"David Chase",description:"Um chefe da máfia de New Jersey tenta equilibrar a vida familiar com o comando de sua organização criminosa, enquanto enfrenta crises de ansiedade em sessões de terapia.",themes:["Crime","Drama"],rating:9.2,status:"prospect",type:"series"},
+  {id:"tv022",name:"Pinguim",director:"Craig Zobel",description:"Após os eventos de 'The Batman', Oz Cobb, o Pinguim, luta para ascender ao controle do submundo criminoso de Gotham City em uma série sombria sobre poder e sobrevivência.",themes:["Crime","Drama","Ação"],rating:8.2,status:"prospect",type:"series"},
+  {id:"tv023",name:"Disclaimer",director:"Alfonso Cuarón",description:"Uma documentarista premiada descobre que a protagonista de um romance que sua rival escreveu é ela mesma, expondo um segredo do passado que ela pensou ter enterrado para sempre.",themes:["Drama","Suspense"],rating:7.0,status:"prospect",type:"series"},
+  {id:"tv024",name:"Arcane",director:"Pascal Charrue, Arnaud Delord",description:"Duas irmãs de origens humildes são separadas pelo conflito entre a cidade utópica de Piltover e os guetos de Zaun, desencadeando uma guerra de consequências imprevisíveis.",themes:["Ação","Fantasia","Animação"],rating:9.0,status:"prospect",type:"series"},
+  {id:"tv025",name:"Link Click",director:"Li Haoling",description:"Dois amigos com o poder de mergulhar em memórias fotográficas cumprem desejos dos clientes de sua loja de fotos, mas cada missão carrega consequências que podem mudar o passado — e o presente.",themes:["Sci-Fi","Drama","Suspense","Animação"],rating:8.8,status:"prospect",type:"series"}
+];
+async function seedData4(){
+  try{
+    const done = await window.storage.get(SEED_KEY4, false);
+    if(done && done.value) return;
+  }catch(e){}
+  const existingIds = new Set(items.map(i=>i.id));
+  SEED4.forEach(s=>{ if(!existingIds.has(s.id)) items.push({...s}); });
+  await save();
+  try{ await window.storage.set(SEED_KEY4,"1",false); }catch(e){}
+}
+
+/* ---------- score color: deeper blue = higher score ---------- */
+function lerp(a,b,t){ return Math.round(a+(b-a)*t); }
+function scoreColor(n){
+  const t = Math.max(0,Math.min(1,n/10));
+  // light blue (219,234,254) -> deep navy (10,42,94)
+  const r=lerp(219,10,t), g=lerp(234,42,t), b=lerp(254,94,t);
+  return { bg:`rgb(${r},${g},${b})`, fg: t>=0.45 ? "#ffffff" : "#0a2a5e" };
+}
+
+/* ---------- helpers ---------- */
+function fmtScore(n){ return Number(n).toFixed(1); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+const $ = s => document.querySelector(s);
+
+/* ---------- build theme chips & picker ---------- */
+function buildChips(){
+  const wrap = $("#themeChips");
+  wrap.innerHTML = "";
+  const all = document.createElement("button");
+  all.className = "chip" + (state.theme==="all"?" active":"");
+  all.textContent = "Todos";
+  all.onclick = ()=>{ state.theme="all"; buildChips(); render(); };
+  wrap.appendChild(all);
+  THEMES.forEach(t=>{
+    const c = document.createElement("button");
+    c.className = "chip" + (state.theme===t?" active":"");
+    c.textContent = t;
+    c.onclick = ()=>{ state.theme = state.theme===t?"all":t; buildChips(); render(); };
+    wrap.appendChild(c);
+  });
+}
+function buildPicker(){
+  const wrap = $("#themePick");
+  wrap.innerHTML = "";
+  THEMES.forEach(t=>{
+    const b = document.createElement("button");
+    b.className = "pick" + (state.formThemes.includes(t)?" on":"");
+    b.textContent = t;
+    b.onclick = ()=>{
+      if(state.formThemes.includes(t)) state.formThemes = state.formThemes.filter(x=>x!==t);
+      else state.formThemes.push(t);
+      buildPicker();
+    };
+    wrap.appendChild(b);
+  });
+}
+
+/* ---------- render list ---------- */
+function render(){
+  // counts
+  $("#countMovie").textContent = items.filter(i=>i.type==="movie").length;
+  $("#countSeries").textContent = items.filter(i=>i.type==="series").length;
+
+  let rows = items.filter(i=>i.type===state.type && i.status===state.status);
+  if(state.theme!=="all") rows = rows.filter(i=>i.themes.includes(state.theme));
+  if(state.sort==="az") rows.sort((a,b)=>a.name.localeCompare(b.name,"pt"));
+  else rows.sort((a,b)=>b.rating-a.rating || a.name.localeCompare(b.name,"pt"));
+
+  const list = $("#list");
+  list.innerHTML = "";
+
+  if(rows.length===0){
+    const noun = state.type==="movie" ? "filme" : "série";
+    const where = state.status==="prospect" ? "que você quer ver" : "que você já assistiu";
+    list.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16"/></svg>
+      <h3>Nada por aqui ainda</h3>
+      <p>Nenhum ${noun} ${where}.<br>Toque em <b>Novo</b> para começar a lista.</p>
+    </div>`;
+    return;
+  }
+
+  rows.forEach(it=>{
+    const sc = scoreColor(it.rating);
+    const card = document.createElement("div");
+    card.className = "card";
+    const themesHtml = it.themes.map(t=>`<span class="theme-tag">${t}</span>`).join("");
+    const watched = it.status==="watched";
+    const watchLabel = watched ? "Prospect" : "Watched";
+    const watchIcon = watched
+      ? `<path d="M11 5l-7 7 7 7M4 12h16"/>`
+      : `<path d="M5 12l5 5L20 7"/>`;
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="score" style="background:${sc.bg};color:${sc.fg}">${fmtScore(it.rating)}</div>
+        <div style="min-width:0;flex:1">
+          <h2 class="card-title">${escapeHtml(it.name)}</h2>
+          ${it.director?`<div class="card-director">Dir. ${escapeHtml(it.director)}</div>`:""}
+        </div>
+        <div class="card-ctrl">
+          <button class="mini mini-watch${watched?' back':''}" data-act="move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${watchIcon}</svg>${watchLabel}</button>
+          <button class="mini mini-edit" data-act="edit" aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+        </div>
+      </div>
+      ${it.description?`<p class="card-desc">${escapeHtml(it.description)}</p>`:""}
+      ${themesHtml?`<div class="card-themes">${themesHtml}</div>`:""}`;
+    card.querySelector('[data-act="move"]').onclick = ()=>toggleStatus(it.id);
+    card.querySelector('[data-act="edit"]').onclick = ()=>openSheet(it.id);
+    list.appendChild(card);
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- actions ---------- */
+async function toggleStatus(id){
+  const it = items.find(i=>i.id===id);
+  if(!it) return;
+  it.status = it.status==="prospect" ? "watched" : "prospect";
+  await save(); render();
+}
+async function removeItem(id){
+  const it = items.find(i=>i.id===id);
+  if(!it) return;
+  items = items.filter(i=>i.id!==id);
+  await save(); closeSheet(); render();
+}
+
+/* ---------- tabs ---------- */
+function moveTabPill(){
+  const tabs = document.querySelectorAll("#tabs .tab");
+  const active = state.status==="prospect" ? tabs[0] : tabs[1];
+  const pill = $("#tabPill");
+  pill.style.width = active.offsetWidth + "px";
+  pill.style.transform = `translateX(${active.offsetLeft-5}px)`;
+}
+function setStatus(s){
+  state.status = s;
+  document.querySelectorAll("#tabs .tab").forEach(t=>t.classList.toggle("active",t.dataset.status===s));
+  moveTabPill(); render();
+}
+
+/* ---------- type switch ---------- */
+function setType(t){
+  state.type = t;
+  $("#sectionTitle").textContent = t==="movie" ? "Filmes" : "Séries";
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.type===t));
+  closeSidebar();
+  render();
+}
+
+/* ---------- sidebar ---------- */
+function openSidebar(){ $("#sidebar").classList.add("open"); $("#scrim").classList.add("show"); }
+function closeSidebar(){ $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("show"); }
+
+/* ---------- sheet (add/edit) ---------- */
+function openSheet(id){
+  state.editId = id || null;
+  const noun = state.type==="movie" ? "filme" : "série";
+  if(id){
+    const it = items.find(i=>i.id===id);
+    $("#sheetTitle").textContent = "Editar";
+    $("#fName").value = it.name;
+    $("#fDirector").value = it.director||"";
+    $("#fDesc").value = it.description||"";
+    $("#fRating").value = it.rating;
+    state.formThemes = it.themes.slice();
+    $("#saveBtn").textContent = "Salvar";
+    $("#deleteBtn").classList.add("show");
+  }else{
+    $("#sheetTitle").textContent = "Nov"+(state.type==="movie"?"o filme":"a série");
+    $("#fName").value=""; $("#fDirector").value=""; $("#fDesc").value="";
+    $("#fRating").value=0;
+    state.formThemes=[];
+    $("#saveBtn").textContent = "Adicionar";
+    $("#deleteBtn").classList.remove("show");
+  }
+  updateRating();
+  buildPicker();
+  $("#nameErr").classList.remove("show");
+  $("#delConfirm").classList.remove("show");
+  $("#sheet").classList.add("open"); $("#sheetScrim").classList.add("show");
+}
+function closeSheet(){ $("#sheet").classList.remove("open"); $("#sheetScrim").classList.remove("show"); }
+
+function updateRating(){
+  const v = parseFloat($("#fRating").value);
+  const el = $("#ratingVal");
+  el.textContent = fmtScore(v);
+  const sc = scoreColor(v);
+  el.style.background = sc.bg; el.style.color = sc.fg;
+}
+
+async function saveItem(){
+  const name = $("#fName").value.trim();
+  if(!name){ $("#nameErr").classList.add("show"); return; }
+  const data = {
+    name,
+    director: $("#fDirector").value.trim(),
+    description: $("#fDesc").value.trim(),
+    themes: state.formThemes.slice(),
+    rating: parseFloat($("#fRating").value),
+    type: state.type
+  };
+  let landed;
+  if(state.editId){
+    const it = items.find(i=>i.id===state.editId);
+    Object.assign(it, data);
+    landed = it.status;
+  }else{
+    items.push({ id:uid(), status:"prospect", ...data });
+    landed = "prospect";
+  }
+  await save();
+  // jump to the list the item landed in
+  setStatus(landed);
+  closeSheet();
+  render();
+}
+
+/* ---------- wire up ---------- */
+$("#menuBtn").onclick = openSidebar;
+$("#scrim").onclick = closeSidebar;
+$("#addBtn").onclick = ()=>openSheet(null);
+$("#closeSheet").onclick = closeSheet;
+$("#sheetScrim").onclick = closeSheet;
+$("#saveBtn").onclick = saveItem;
+$("#fRating").oninput = updateRating;
+$("#fName").oninput = ()=>$("#nameErr").classList.remove("show");
+
+document.querySelectorAll("#tabs .tab").forEach(t=> t.onclick = ()=>setStatus(t.dataset.status));
+document.querySelectorAll(".nav-item").forEach(n=> n.onclick = ()=>setType(n.dataset.type));
+document.querySelectorAll(".sort-btn").forEach(b=> b.onclick = ()=>{
+  state.sort = b.dataset.sort;
+  document.querySelectorAll(".sort-btn").forEach(x=>x.classList.toggle("active",x===b));
+  render();
+});
+$("#deleteBtn").onclick = ()=>{ $("#delConfirm").classList.add("show"); };
+$("#delYes").onclick   = ()=>{ if(state.editId) removeItem(state.editId); };
+$("#delNo").onclick    = ()=>{ $("#delConfirm").classList.remove("show"); };
+
+window.addEventListener("resize", moveTabPill);
+
+/* ---------- boot ---------- */
+(async function(){
+  await load();
+  await seedData();
+  await seedData2();
+  await seedData3();
+  await seedData4();
+  // Open on Séries > Prospect to show new content
+  state.type = "series";
+  state.status = "prospect";
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.type==="series"));
+  $("#sectionTitle").textContent = "Séries";
+  document.querySelectorAll("#tabs .tab").forEach(t=>t.classList.toggle("active",t.dataset.status==="prospect"));
+  buildChips();
+  buildPicker();
+  render();
+  requestAnimationFrame(moveTabPill);
+})();
+</script>
+</body>
+</html>
