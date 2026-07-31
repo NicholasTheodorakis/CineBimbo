@@ -223,6 +223,47 @@
   .err{font-size:12.5px;color:#c0392b;margin-top:7px;display:none;}
   .err.show{display:block;}
 
+  /* ---------- Roulette ---------- */
+  .roul{display:none;flex-direction:column;padding:8px 16px 110px;flex:1;}
+  .roul.show{display:flex;}
+  .roul-filters{padding:8px 2px 4px;}
+  .roul-hint{font-size:12.5px;color:var(--ink-soft);margin:0 0 12px;line-height:1.5;}
+  .wheel-wrap{position:relative;width:100%;max-width:330px;margin:6px auto 0;aspect-ratio:1;display:grid;place-items:center;}
+  .wheel-pin{
+    position:absolute;top:-4px;left:50%;transform:translateX(-50%);z-index:3;
+    width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;
+    border-top:22px solid var(--blue-700);filter:drop-shadow(0 2px 3px rgba(12,35,64,.3));
+  }
+  .wheel-hub{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;
+    width:54px;height:54px;border-radius:50%;background:#fff;border:3px solid var(--blue-600);
+    display:grid;place-items:center;font-family:'Space Grotesk',sans-serif;font-weight:700;
+    font-size:12px;color:var(--blue-700);box-shadow:var(--shadow);pointer-events:none;
+  }
+  #wheelSvg{width:100%;height:100%;transition:transform 4.6s cubic-bezier(.15,.72,.13,1);filter:drop-shadow(0 4px 14px rgba(12,35,64,.16));}
+  .spin-btn{
+    width:100%;max-width:330px;margin:20px auto 0;padding:17px;border-radius:16px;
+    background:var(--blue-600);color:#fff;font-weight:700;font-size:17px;
+    box-shadow:var(--shadow);transition:transform .12s,background .15s;
+  }
+  .spin-btn:active{transform:scale(.97);background:var(--blue-700);}
+  .spin-btn:disabled{background:#a9bcd8;box-shadow:none;}
+  .roul-result{
+    max-width:330px;width:100%;margin:18px auto 0;background:#fff;border:1px solid var(--line);
+    border-radius:18px;padding:18px;box-shadow:var(--shadow-sm);display:none;animation:rise .4s ease both;
+  }
+  .roul-result.show{display:block;}
+  .rr-eyebrow{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--blue-500);}
+  .rr-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;letter-spacing:-.5px;margin:5px 0 0;line-height:1.2;}
+  .rr-dir{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+  .rr-desc{font-size:13.5px;line-height:1.5;opacity:.85;margin:11px 0 0;}
+  .rr-acts{display:flex;gap:8px;margin-top:15px;}
+  .rr-acts button{flex:1;padding:12px;border-radius:12px;font-weight:600;font-size:13.5px;transition:all .15s;}
+  .rr-watch{background:var(--blue-600);color:#fff;}
+  .rr-watch:active{background:var(--blue-700);}
+  .rr-again{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);}
+  .rr-again:active{background:var(--blue-50);}
+
   @media (prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important;}
   }
@@ -256,7 +297,7 @@
   </div>
 
   <!-- Filters -->
-  <div class="filters">
+  <div class="filters" id="listFilters">
     <div class="filter-label">Ordenar por</div>
     <div class="sort-row">
       <button class="sort-btn active" data-sort="az">
@@ -274,6 +315,22 @@
 
   <!-- List -->
   <div class="list" id="list"></div>
+
+  <!-- Roulette -->
+  <div class="roul" id="roul">
+    <div class="roul-filters">
+      <div class="filter-label">Gêneros na roleta</div>
+      <div class="chips" id="roulChips"></div>
+      <p class="roul-hint" id="roulHint"></p>
+    </div>
+    <div class="wheel-wrap">
+      <div class="wheel-pin"></div>
+      <svg id="wheelSvg" viewBox="0 0 200 200"></svg>
+      <div class="wheel-hub" id="wheelHub">0</div>
+    </div>
+    <button class="spin-btn" id="spinBtn">Girar a roleta</button>
+    <div class="roul-result" id="roulResult"></div>
+  </div>
 </div>
 
 <!-- Sidebar -->
@@ -293,6 +350,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 3l4 4 4-4"/></svg>
       Séries
       <span class="count" id="countSeries">0</span>
+    </button>
+    <button class="nav-item" data-type="roulette">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3v6.6M21 12h-6.6M12 21v-6.6M3 12h6.6"/></svg>
+      Roleta
+      <span class="count" id="countRoul">0</span>
     </button>
   </div>
   <div class="sb-foot">Os itens ficam salvos automaticamente neste dispositivo.</div>
@@ -343,19 +405,17 @@ const THEMES = ["Ação","Aventura","Sci-Fi","Drama","Romance","Comédia","Terro
 const KEY = "cinemateca:items:v1";
 
 let items = [];
-let mem = []; // fallback
-let state = { type:"movie", status:"prospect", sort:"az", theme:"all", editId:null, formThemes:[] };
+let state = { type:"movie", status:"prospect", view:"list", sort:"az", theme:"all", editId:null, formThemes:[] };
 
 /* ---------- storage ---------- */
-async function load(){
+function load(){
   try{
-    const r = await window.storage.get(KEY, false);
-    items = r && r.value ? JSON.parse(r.value) : [];
-  }catch(e){ items = mem.slice(); }
+    const raw = localStorage.getItem(KEY);
+    items = raw ? JSON.parse(raw) : [];
+  }catch(e){ items = []; }
 }
-async function save(){
-  mem = items.slice();
-  try{ await window.storage.set(KEY, JSON.stringify(items), false); }catch(e){}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){}
 }
 
 /* ---------- seed: 34 watched films ---------- */
@@ -396,15 +456,15 @@ const SEED = [
   {id:"s033",name:"Brilho Eterno de uma Mente sem Lembranças",director:"Michel Gondry",description:"Um casal decide apagar as memórias um do outro após o término doloroso, mas durante o processo um deles começa a se arrepender.",themes:["Romance","Drama","Sci-Fi"],rating:8.8,status:"watched",type:"movie"},
   {id:"s034",name:"Project Hail Mary",director:"Phil Lord, Christopher Miller",description:"Um astronauta acorda sozinho no espaço sem memória e percebe que foi enviado em missão solitária para salvar a Terra de uma extinção solar.",themes:["Sci-Fi","Aventura","Drama"],rating:8.8,status:"watched",type:"movie"}
 ];
-async function seedData(){
+function seedData(){
   try{
-    const done = await window.storage.get(SEED_KEY, false);
+    const done = localStorage.getItem(SEED_KEY);
     if(done && done.value) return;
   }catch(e){}
   const existingIds = new Set(items.map(i=>i.id));
   SEED.forEach(s=>{ if(!existingIds.has(s.id)) items.push({...s}); });
-  await save();
-  try{ await window.storage.set(SEED_KEY,"1",false); }catch(e){}
+  save();
+  try{ localStorage.setItem(SEED_KEY,"1"); }catch(e){}
 }
 
 /* ---------- seed: 34 prospect films ---------- */
@@ -445,15 +505,15 @@ const SEED2 = [
   {id:"p033",name:"Blue Valentine",director:"Derek Cianfrance",description:"A ascensão e queda de um casal mostradas em duas linhas do tempo paralelas: o romance apaixonado do início e o presente disfuncional e desgastado.",themes:["Drama","Romance"],rating:7.4,status:"prospect",type:"movie"},
   {id:"p034",name:"Túmulo dos Vagalumes",director:"Isao Takahata",description:"Um adolescente e sua irmã pequena tentam sobreviver sozinhos no Japão durante a Segunda Guerra Mundial após perderem a mãe em um bombardeio.",themes:["Drama","Animação"],rating:8.5,status:"prospect",type:"movie"}
 ];
-async function seedData2(){
+function seedData2(){
   try{
-    const done = await window.storage.get(SEED_KEY2, false);
+    const done = localStorage.getItem(SEED_KEY2);
     if(done && done.value) return;
   }catch(e){}
   const existingIds = new Set(items.map(i=>i.id));
   SEED2.forEach(s=>{ if(!existingIds.has(s.id)) items.push({...s}); });
-  await save();
-  try{ await window.storage.set(SEED_KEY2,"1",false); }catch(e){}
+  save();
+  try{ localStorage.setItem(SEED_KEY2,"1"); }catch(e){}
 }
 
 /* ---------- seed: 8 watched series ---------- */
@@ -468,15 +528,15 @@ const SEED3 = [
   {id:"tv007",name:"Succession",director:"Jesse Armstrong",description:"Os filhos de um magnata da mídia disputam ferozmente o controle do império familiar enquanto o pai adoecente se recusa a soltar o poder — em uma sátira cruel sobre dinheiro, ego e família.",themes:["Drama","Comédia"],rating:9.6,status:"watched",type:"series"},
   {id:"tv008",name:"True Detective",director:"Nic Pizzolatto",description:"Dois detetives com personalidades radicalmente opostas investigam um misterioso assassinato em série no sul dos Estados Unidos, reabrindo o caso 17 anos depois.",themes:["Crime","Drama","Suspense"],rating:9.3,status:"watched",type:"series"}
 ];
-async function seedData3(){
+function seedData3(){
   try{
-    const done = await window.storage.get(SEED_KEY3, false);
+    const done = localStorage.getItem(SEED_KEY3);
     if(done && done.value) return;
   }catch(e){}
   const existingIds = new Set(items.map(i=>i.id));
   SEED3.forEach(s=>{ if(!existingIds.has(s.id)) items.push({...s}); });
-  await save();
-  try{ await window.storage.set(SEED_KEY3,"1",false); }catch(e){}
+  save();
+  try{ localStorage.setItem(SEED_KEY3,"1"); }catch(e){}
 }
 
 /* ---------- seed: 17 prospect series ---------- */
@@ -500,15 +560,15 @@ const SEED4 = [
   {id:"tv024",name:"Arcane",director:"Pascal Charrue, Arnaud Delord",description:"Duas irmãs de origens humildes são separadas pelo conflito entre a cidade utópica de Piltover e os guetos de Zaun, desencadeando uma guerra de consequências imprevisíveis.",themes:["Ação","Fantasia","Animação"],rating:9.0,status:"prospect",type:"series"},
   {id:"tv025",name:"Link Click",director:"Li Haoling",description:"Dois amigos com o poder de mergulhar em memórias fotográficas cumprem desejos dos clientes de sua loja de fotos, mas cada missão carrega consequências que podem mudar o passado — e o presente.",themes:["Sci-Fi","Drama","Suspense","Animação"],rating:8.8,status:"prospect",type:"series"}
 ];
-async function seedData4(){
+function seedData4(){
   try{
-    const done = await window.storage.get(SEED_KEY4, false);
+    const done = localStorage.getItem(SEED_KEY4);
     if(done && done.value) return;
   }catch(e){}
   const existingIds = new Set(items.map(i=>i.id));
   SEED4.forEach(s=>{ if(!existingIds.has(s.id)) items.push({...s}); });
-  await save();
-  try{ await window.storage.set(SEED_KEY4,"1",false); }catch(e){}
+  save();
+  try{ localStorage.setItem(SEED_KEY4,"1"); }catch(e){}
 }
 
 /* ---------- score color: deeper blue = higher score ---------- */
@@ -615,17 +675,23 @@ function render(){
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ---------- actions ---------- */
-async function toggleStatus(id){
+function toggleStatus(id){
   const it = items.find(i=>i.id===id);
   if(!it) return;
   it.status = it.status==="prospect" ? "watched" : "prospect";
-  await save(); render();
+  save(); render(); syncRoulette();
 }
-async function removeItem(id){
+function removeItem(id){
   const it = items.find(i=>i.id===id);
   if(!it) return;
   items = items.filter(i=>i.id!==id);
-  await save(); closeSheet(); render();
+  save(); closeSheet(); render(); syncRoulette();
+}
+// mantém a roleta atualizada mesmo quando a mudança acontece em outra aba
+function syncRoulette(){
+  const n = items.filter(i=>i.type==="movie" && i.status==="prospect").length;
+  $("#countRoul").textContent = n;
+  if(state.view === "roulette" && !spinning) rebuildRoulette();
 }
 
 /* ---------- tabs ---------- */
@@ -642,13 +708,216 @@ function setStatus(s){
   moveTabPill(); render();
 }
 
-/* ---------- type switch ---------- */
+/* ---------- type / view switch ---------- */
 function setType(t){
-  state.type = t;
-  $("#sectionTitle").textContent = t==="movie" ? "Filmes" : "Séries";
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.type===t));
+  const isRoul = t==="roulette";
+  state.view = isRoul ? "roulette" : "list";
+  if(!isRoul) state.type = t;
+
+  $("#eyebrow").textContent   = isRoul ? "Sorteio" : "Coleção";
+  $("#sectionTitle").textContent = isRoul ? "Roleta" : (state.type==="movie" ? "Filmes" : "Séries");
+  $("#tabs").style.display    = isRoul ? "none" : "";
+  $("#listFilters").style.display = isRoul ? "none" : "";
+  $("#list").style.display    = isRoul ? "none" : "";
+  $("#addBtn").style.display  = isRoul ? "none" : "";
+  $("#roul").classList.toggle("show", isRoul);
+
   closeSidebar();
-  render();
+  if(isRoul) rebuildRoulette(); else { render(); moveTabPill(); }
+}
+
+/* ---------- roulette ---------- */
+const WSEG = [
+  {bg:"#1e5bd6",fg:"#ffffff"},
+  {bg:"#dbeafe",fg:"#0a2a5e"},
+  {bg:"#0a2a5e",fg:"#ffffff"},
+  {bg:"#93c5fd",fg:"#0a2a5e"},
+  {bg:"#3b82f6",fg:"#ffffff"},
+  {bg:"#eef4ff",fg:"#0a2a5e"}
+];
+let roulPool = [];
+let roulThemes = new Set();   // empty = todos
+let wheelRot = 0;
+let spinning = false;
+
+function roulCandidates(){
+  let pool = items.filter(i=>i.type==="movie" && i.status==="prospect");
+  if(roulThemes.size) pool = pool.filter(i=>i.themes.some(t=>roulThemes.has(t)));
+  return pool.sort((a,b)=>a.name.localeCompare(b.name,"pt"));
+}
+
+function buildRoulChips(){
+  const avail = new Set();
+  items.filter(i=>i.type==="movie" && i.status==="prospect")
+       .forEach(i=>i.themes.forEach(t=>avail.add(t)));
+  const wrap = $("#roulChips");
+  wrap.innerHTML = "";
+
+  const all = document.createElement("button");
+  all.className = "chip" + (roulThemes.size===0 ? " active" : "");
+  all.textContent = "Todos";
+  all.onclick = ()=>{ roulThemes.clear(); rebuildRoulette(); };
+  wrap.appendChild(all);
+
+  THEMES.filter(t=>avail.has(t)).forEach(t=>{
+    const c = document.createElement("button");
+    c.className = "chip" + (roulThemes.has(t) ? " active" : "");
+    c.textContent = t;
+    c.onclick = ()=>{
+      if(roulThemes.has(t)) roulThemes.delete(t); else roulThemes.add(t);
+      rebuildRoulette();
+    };
+    wrap.appendChild(c);
+  });
+}
+
+function buildWheel(pool){
+  const svg = $("#wheelSvg");
+  const NS = "http://www.w3.org/2000/svg";
+  svg.innerHTML = "";
+  svg.style.transition = "none";
+  svg.style.transform = "rotate(0deg)";
+  wheelRot = 0;
+  void svg.offsetWidth;                    // reflow so the reset isn't animated
+  svg.style.transition = "";
+
+  const n = pool.length, cx = 100, cy = 100, r = 96;
+
+  if(n === 0){
+    const c = document.createElementNS(NS,"circle");
+    c.setAttribute("cx",cx); c.setAttribute("cy",cy); c.setAttribute("r",r);
+    c.setAttribute("fill","#eef4ff"); c.setAttribute("stroke","#dde8fb"); c.setAttribute("stroke-width","2");
+    svg.appendChild(c);
+    return;
+  }
+
+  if(n === 1){
+    const c = document.createElementNS(NS,"circle");
+    c.setAttribute("cx",cx); c.setAttribute("cy",cy); c.setAttribute("r",r);
+    c.setAttribute("fill",WSEG[0].bg);
+    svg.appendChild(c);
+  }else{
+    const seg = 360/n;
+    for(let i=0;i<n;i++){
+      let s = WSEG[i % WSEG.length];
+      if(i===n-1 && WSEG[0].bg===s.bg) s = WSEG[1];
+      const a0 = (i*seg - 90) * Math.PI/180;
+      const a1 = ((i+1)*seg - 90) * Math.PI/180;
+      const x0 = cx + r*Math.cos(a0), y0 = cy + r*Math.sin(a0);
+      const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+      const large = seg > 180 ? 1 : 0;
+      const p = document.createElementNS(NS,"path");
+      p.setAttribute("d",`M${cx},${cy} L${x0},${y0} A${r},${r} 0 ${large},1 ${x1},${y1} Z`);
+      p.setAttribute("fill",s.bg);
+      p.setAttribute("stroke","#ffffff");
+      p.setAttribute("stroke-width","0.8");
+      svg.appendChild(p);
+    }
+  }
+
+  // labels only when they stay legible
+  if(n <= 16){
+    const seg = 360/n;
+    const fs  = n<=6 ? 9 : n<=10 ? 7.6 : n<=13 ? 6.6 : 5.8;
+    const max = n<=6 ? 16 : n<=10 ? 14 : 12;
+    for(let i=0;i<n;i++){
+      let s = WSEG[i % WSEG.length];
+      if(i===n-1 && WSEG[0].bg===s.bg) s = WSEG[1];
+      const mid = i*seg + seg/2 - 90;
+      let label = pool[i].name;
+      if(label.length > max) label = label.slice(0,max-1).trimEnd() + "…";
+      const t = document.createElementNS(NS,"text");
+      t.setAttribute("x", cx + r - 8);
+      t.setAttribute("y", cy);
+      t.setAttribute("text-anchor","end");
+      t.setAttribute("dominant-baseline","middle");
+      t.setAttribute("font-size",fs);
+      t.setAttribute("font-weight","600");
+      t.setAttribute("font-family","Inter, sans-serif");
+      t.setAttribute("fill",s.fg);
+      t.setAttribute("transform",`rotate(${mid} ${cx} ${cy})`);
+      t.textContent = label;
+      svg.appendChild(t);
+    }
+  }
+}
+
+function rebuildRoulette(){
+  buildRoulChips();
+  roulPool = roulCandidates();
+  buildWheel(roulPool);
+
+  const n = roulPool.length;
+  $("#wheelHub").textContent = n;
+  $("#spinBtn").disabled = n < 2;
+  $("#spinBtn").textContent = n === 0 ? "Nenhum filme disponível"
+                            : n === 1 ? "Só há 1 filme na roleta"
+                            : "Girar a roleta";
+  $("#roulHint").textContent = n === 0
+    ? "Nenhum filme em Prospect com esses gêneros. Ajuste o filtro acima."
+    : `${n} filme${n>1?"s":""} na roleta` + (roulThemes.size ? " (filtrado)" : " — todos os Prospect");
+
+  // a movie already drawn but no longer eligible shouldn't stay on screen
+  const shown = $("#roulResult").dataset.id;
+  if(shown && !roulPool.some(i=>i.id===shown)) clearRoulResult();
+}
+
+function clearRoulResult(){
+  const box = $("#roulResult");
+  box.classList.remove("show");
+  box.innerHTML = "";
+  delete box.dataset.id;
+}
+
+function spinWheel(){
+  if(spinning || roulPool.length < 2) return;
+  spinning = true;
+  $("#spinBtn").disabled = true;
+  clearRoulResult();
+
+  const n = roulPool.length;
+  const k = Math.floor(Math.random()*n);
+  const seg = 360/n;
+  const target = (360 - (k*seg + seg/2)) % 360;          // bring segment k under the pin
+  const current = ((wheelRot % 360) + 360) % 360;
+  wheelRot += 360*5 + ((target - current) + 360) % 360;
+  $("#wheelSvg").style.transform = `rotate(${wheelRot}deg)`;
+
+  const picked = roulPool[k];
+  setTimeout(()=>{
+    spinning = false;
+    $("#spinBtn").disabled = roulPool.length < 2;
+    showRoulResult(picked);
+  }, 4700);
+}
+
+function showRoulResult(it){
+  const box = $("#roulResult");
+  const sc = scoreColor(it.rating);
+  box.dataset.id = it.id;
+  box.innerHTML = `
+    <div class="rr-eyebrow">Sua próxima sessão</div>
+    <div style="display:flex;gap:12px;align-items:flex-start;margin-top:5px">
+      <div class="score" style="background:${sc.bg};color:${sc.fg}">${fmtScore(it.rating)}</div>
+      <div style="min-width:0;flex:1">
+        <h2 class="rr-title">${escapeHtml(it.name)}</h2>
+        ${it.director?`<div class="rr-dir">Dir. ${escapeHtml(it.director)}</div>`:""}
+      </div>
+    </div>
+    ${it.description?`<p class="rr-desc">${escapeHtml(it.description)}</p>`:""}
+    ${it.themes.length?`<div class="card-themes">${it.themes.map(t=>`<span class="theme-tag">${t}</span>`).join("")}</div>`:""}
+    <div class="rr-acts">
+      <button class="rr-watch" data-act="watch">Marcar como Watched</button>
+      <button class="rr-again" data-act="again">Girar de novo</button>
+    </div>`;
+  box.querySelector('[data-act="watch"]').onclick = ()=>{
+    toggleStatus(it.id);          // move para Watched, salva e atualiza a roleta
+    clearRoulResult();
+  };
+  box.querySelector('[data-act="again"]').onclick = spinWheel;
+  box.classList.add("show");
+  box.scrollIntoView({behavior:"smooth", block:"nearest"});
 }
 
 /* ---------- sidebar ---------- */
@@ -692,7 +961,7 @@ function updateRating(){
   el.style.background = sc.bg; el.style.color = sc.fg;
 }
 
-async function saveItem(){
+function saveItem(){
   const name = $("#fName").value.trim();
   if(!name){ $("#nameErr").classList.add("show"); return; }
   const data = {
@@ -712,11 +981,12 @@ async function saveItem(){
     items.push({ id:uid(), status:"prospect", ...data });
     landed = "prospect";
   }
-  await save();
+  save();
   // jump to the list the item landed in
   setStatus(landed);
   closeSheet();
   render();
+  syncRoulette();
 }
 
 /* ---------- wire up ---------- */
@@ -737,26 +1007,27 @@ document.querySelectorAll(".sort-btn").forEach(b=> b.onclick = ()=>{
   render();
 });
 $("#deleteBtn").onclick = ()=>{ if(state.editId) removeItem(state.editId); };
-
+$("#spinBtn").onclick = spinWheel;
 
 window.addEventListener("resize", moveTabPill);
 
 /* ---------- boot ---------- */
-(async function(){
-  await load();
-  await seedData();
-  await seedData2();
-  await seedData3();
-  await seedData4();
+(function(){
+  load();
+  seedData();
+  seedData2();
+  seedData3();
+  seedData4();
   // Open on Séries > Prospect to show new content
-  state.type = "series";
-  state.status = "prospect";
-  document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.type==="series"));
-  $("#sectionTitle").textContent = "Séries";
-  document.querySelectorAll("#tabs .tab").forEach(t=>t.classList.toggle("active",t.dataset.status==="prospect"));
+  state.type = "movie";
+  state.status = "watched";
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.type==="movie"));
+  $("#sectionTitle").textContent = "Filmes";
+  document.querySelectorAll("#tabs .tab").forEach(t=>t.classList.toggle("active",t.dataset.status==="watched"));
   buildChips();
   buildPicker();
   render();
+  syncRoulette();
   requestAnimationFrame(moveTabPill);
 })();
 </script>
