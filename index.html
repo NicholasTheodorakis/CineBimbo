@@ -111,7 +111,7 @@ input,textarea{font-family:inherit;font-size:17px;}
   box-shadow:inset 0 .5px 0 rgba(255,255,255,.55),0 2px 8px rgba(0,122,255,.30),0 0 16px rgba(0,122,255,.18);
 }
 .sortpill.on svg{color:#fff;}
-.count-note{margin-left:auto;font-size:13px;color:var(--label-2);}
+.count-note{font-size:12.5px;color:var(--label-3);padding:9px 18px 0;}
 
 .chips-label{font-size:12px;font-weight:650;color:var(--label-2);padding:15px 18px 0;letter-spacing:.2px;}
 .chips{display:flex;gap:7px;overflow-x:auto;padding:8px 18px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
@@ -213,7 +213,9 @@ input,textarea{font-family:inherit;font-size:17px;}
 .rank-body{flex:1;min-width:0;}
 .rank-title{font-size:15.5px;font-weight:600;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rank-sub{font-size:12.5px;color:var(--label-2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.rank-score{flex:0 0 auto;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px;}
+.rank-score{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;line-height:1.1;}
+.rank-score b{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px;color:var(--label);}
+.rank-score i{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:.5px;color:var(--label-3);margin-top:1px;}
 .rank-chev{flex:0 0 auto;width:8px;height:13px;color:var(--label-3);}
 
 .cta{
@@ -480,17 +482,20 @@ input[type=range]::-moz-range-thumb{width:25px;height:25px;border-radius:50%;bac
 
   <!-- ===== LISTA (Filmes / Séries) ===== -->
   <section class="view" id="viewList">
-    <div class="filterbar">
+    <div class="chips-label">ORDENAR POR</div>
+    <div class="chips" id="sortRow">
       <button class="sortpill on" data-sort="az">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v16M7 4L4 7M7 4l3 3"/><path d="M13 6h7M13 12h5M13 18h3"/></svg>
         A–Z
       </button>
-      <button class="sortpill" data-sort="nota">
+      <button class="sortpill" data-sort="mine" id="sortMine">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>
-        Nota
+        Minha nota
       </button>
-      <div class="count-note" id="countNote"></div>
+      <button class="sortpill" data-sort="imdb">IMDb</button>
+      <button class="sortpill" data-sort="rt">Rotten</button>
     </div>
+    <div class="count-note" id="countNote"></div>
     <div class="chips-label">TEMA</div>
     <div class="chips" id="themeChips"></div>
     <div class="chips-label">STREAMING</div>
@@ -787,13 +792,21 @@ function seed(){
 function mineOf(it){
   return it.status==="watched" && it.ratings && it.ratings.mine!=null ? it.ratings.mine : null;
 }
-// nota de referência: a minha vem primeiro, depois IMDb, depois RT convertida
-function primary(it){
+// usada só para ordenar e rankear (nunca para o quadrado grande)
+function refScore(it){
   const r = it.ratings || {}, m = mineOf(it);
-  if(m    != null) return m;
+  if(m      != null) return m;
   if(r.imdb != null) return r.imdb;
   if(r.rt   != null) return r.rt/10;
   return null;
+}
+// de onde veio o número usado no ranking da Central
+function refSource(it){
+  const r = it.ratings || {};
+  if(mineOf(it) != null) return "MINHA";
+  if(r.imdb != null)     return "IMDB";
+  if(r.rt   != null)     return "RT";
+  return "";
 }
 function fmt(n){ return n==null ? "–" : Number(n).toFixed(1); }
 function lerp(a,b,t){ return Math.round(a+(b-a)*t); }
@@ -803,8 +816,8 @@ function scoreColor(n){
   return { bg:`rgb(${lerp(225,10,t)},${lerp(238,77,t)},${lerp(255,166,t)})`, fg: t>=.45 ? "#fff" : "#0A2240" };
 }
 function rateChips(it){
-  const r = it.ratings || {}, out = [], m = mineOf(it);
-  if(m != null) out.push(`<span class="rate r-mine">Minha <b>${fmt(m)}</b></span>`);
+  // a minha nota não entra aqui: ela é o quadrado grande do card
+  const r = it.ratings || {}, out = [];
   if(r.imdb != null) out.push(`<span class="rate r-imdb">IMDb <b>${fmt(r.imdb)}</b></span>`);
   if(r.rt   != null) out.push(`<span class="rate r-rt">RT <b>${Math.round(r.rt)}%</b></span>`);
   return out.length ? `<div class="rate-row">${out.join("")}</div>` : "";
@@ -859,9 +872,18 @@ function setTab(tab){
   window.scrollTo({top:0, behavior:"auto"});
 
   if(tab==="central")      renderCentral();
-  else if(isList)        { renderChips(); renderList(); requestAnimationFrame(syncSeg); }
+  else if(isList)        { syncSortPills(); renderChips(); renderList(); requestAnimationFrame(syncSeg); }
   else                     renderRoulette();
   updateSub();
+}
+// "Minha nota" só faz sentido na aba dos já vistos
+function syncSortPills(){
+  const seen = state.status==="watched";
+  $("#sortMine").style.display = seen ? "" : "none";
+  if(!seen && state.sort==="mine"){
+    state.sort = "az";
+    document.querySelectorAll(".sortpill").forEach(x=>x.classList.toggle("on", x.dataset.sort==="az"));
+  }
 }
 function updateSub(){
   const p = $("#bigSub");
@@ -880,7 +902,7 @@ function updateSub(){
 function topOf(type, n){
   return items.filter(i=>i.type===type && i.status==="prospect")
               .sort((a,b)=>{
-                const pa=primary(a), pb=primary(b);
+                const pa=refScore(a), pb=refScore(b);
                 if(pa==null && pb==null) return a.name.localeCompare(b.name,"pt");
                 if(pa==null) return 1; if(pb==null) return -1;
                 return pb-pa || a.name.localeCompare(b.name,"pt");
@@ -889,10 +911,10 @@ function topOf(type, n){
 function renderCentral(){
   // destaque: melhor avaliado da fila (filme ou série)
   const best = [...topOf("movie",1), ...topOf("series",1)]
-    .sort((a,b)=>(primary(b)??-1)-(primary(a)??-1))[0];
+    .sort((a,b)=>(refScore(b)??-1)-(refScore(a)??-1))[0];
   const slot = $("#heroSlot");
   if(best){
-    const p = primary(best);
+    const p = refScore(best);
     slot.innerHTML = `
       <div class="hero">
         <div class="hero-eyebrow">Destaque da fila</div>
@@ -925,14 +947,14 @@ function renderRanked(sel, title, rows, type){
   el.innerHTML = `
     <div class="sec-head"><h2>${title}</h2><span>${total} na fila</span></div>
     <div class="rank-list">${rows.map((it,i)=>{
-      const p = primary(it), sc = scoreColor(p);
+      const p = refScore(it), src = refSource(it);
       return `<button class="rank" data-id="${it.id}">
         <div class="rank-n">${i+1}</div>
         <div class="rank-body">
           <div class="rank-title">${esc(it.name)}</div>
           <div class="rank-sub">${it.director?esc(it.director):it.themes.slice(0,2).join(" · ")||"—"}</div>
         </div>
-        <div class="rank-score" style="color:${p!=null?sc.bg.replace("rgb","rgb"):"var(--label-3)"}">${fmt(p)}</div>
+        <div class="rank-score"><b>${fmt(p)}</b><i>${src}</i></div>
         <svg class="rank-chev" viewBox="0 0 8 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg>
       </button>`;
     }).join("")}</div>`;
@@ -994,15 +1016,27 @@ function renderList(){
   let rows = items.filter(i=>i.type===state.type && i.status===state.status);
   if(state.theme!=="all") rows = rows.filter(i=>i.themes.includes(state.theme));
   if(state.streams.length) rows = rows.filter(i=>i.streaming.some(s=>state.streams.includes(s)));
+
+  // ordenar por cada nota separadamente; quem não tem a nota escolhida vai para o fim
+  const key = it => {
+    if(state.sort==="mine") return mineOf(it);
+    if(state.sort==="imdb") return it.ratings.imdb ?? null;
+    if(state.sort==="rt")   return it.ratings.rt   ?? null;
+    return null;
+  };
   if(state.sort==="az") rows.sort((a,b)=>a.name.localeCompare(b.name,"pt"));
   else rows.sort((a,b)=>{
-    const pa=primary(a), pb=primary(b);
-    if(pa==null && pb==null) return a.name.localeCompare(b.name,"pt");
-    if(pa==null) return 1; if(pb==null) return -1;
-    return pb-pa || a.name.localeCompare(b.name,"pt");
+    const ka=key(a), kb=key(b);
+    if(ka==null && kb==null) return a.name.localeCompare(b.name,"pt");
+    if(ka==null) return 1; if(kb==null) return -1;
+    return kb-ka || a.name.localeCompare(b.name,"pt");
   });
 
-  $("#countNote").textContent = rows.length ? `${rows.length} ${rows.length>1?"títulos":"título"}` : "";
+  const semNota = state.sort!=="az" ? rows.filter(i=>key(i)==null).length : 0;
+  const label = {mine:"minha nota", imdb:"IMDb", rt:"Rotten Tomatoes"}[state.sort];
+  $("#countNote").textContent = !rows.length ? ""
+    : `${rows.length} ${rows.length>1?"títulos":"título"}`
+      + (semNota ? ` · ${semNota} sem ${label}, no fim da lista` : "");
 
   const list = $("#list");
   list.innerHTML = "";
@@ -1017,14 +1051,18 @@ function renderList(){
   }
 
   rows.forEach(it=>{
-    const p = primary(it), sc = scoreColor(p);
     const watched = it.status==="watched";
+    // o quadrado grande é a MINHA nota — só existe no que já foi visto
+    const m = mineOf(it), sc = scoreColor(m);
+    const square = watched
+      ? `<div class="score" style="background:${sc.bg};color:${sc.fg}">${fmt(m)}</div>`
+      : "";
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
       <div class="card-main">
         <button class="card-tap" data-act="open">
-          <div class="score" style="background:${sc.bg};color:${sc.fg}">${fmt(p)}</div>
+          ${square}
           <div style="min-width:0;flex:1">
             <div class="card-title">${esc(it.name)}</div>
             ${it.director?`<div class="card-sub">${esc(it.director)}</div>`:""}
@@ -1198,7 +1236,7 @@ function spin(){
   }, 4700);
 }
 function showResult(it){
-  const c = $("#resCard"), p = primary(it), sc = scoreColor(p);
+  const c = $("#resCard"), m = mineOf(it), sc = scoreColor(m);
   c.dataset.id = it.id;
   c.innerHTML = `
     <button class="res-close" aria-label="Fechar">
@@ -1206,7 +1244,7 @@ function showResult(it){
     </button>
     <div class="res-eyebrow">Sua próxima sessão</div>
     <div style="display:flex;gap:12px;align-items:flex-start;margin-top:8px;padding-right:26px">
-      <div class="score" style="background:${sc.bg};color:${sc.fg}">${fmt(p)}</div>
+      ${m!=null?`<div class="score" style="background:${sc.bg};color:${sc.fg}">${fmt(m)}</div>`:""}
       <div style="min-width:0;flex:1">
         <div style="font-size:21px;font-weight:700;letter-spacing:-.5px;line-height:1.2">${esc(it.name)}</div>
         ${it.director?`<div class="card-sub">${esc(it.director)}</div>`:""}
@@ -1345,7 +1383,7 @@ document.querySelectorAll(".tab-item").forEach(b=> b.onclick = ()=>setTab(b.data
 document.querySelectorAll("#seg .seg-btn").forEach(b=> b.onclick = ()=>{
   state.status = b.dataset.status;
   document.querySelectorAll("#seg .seg-btn").forEach(x=>x.classList.toggle("active", x===b));
-  syncSeg(); state.theme="all"; state.streams=[]; renderChips(); renderList();
+  syncSeg(); state.theme="all"; state.streams=[]; syncSortPills(); renderChips(); renderList();
 });
 document.querySelectorAll("#segForm .seg-btn").forEach(b=> b.onclick = ()=>setFStatus(b.dataset.fstatus));
 document.querySelectorAll(".sortpill").forEach(b=> b.onclick = ()=>{
